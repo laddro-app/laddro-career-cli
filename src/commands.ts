@@ -207,7 +207,7 @@ export async function settings(args: string[]): Promise<void> {
 }
 
 export function help(): void {
-  console.log(`laddro — Laddro Career API CLI
+  console.log(`laddro - Laddro Career API CLI
 
 Commands:
   login <api-key>           Save API key

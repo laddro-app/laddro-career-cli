@@ -1,0 +1,41 @@
+{
+  "name": "@laddro/career-cli",
+  "version": "0.1.0",
+  "description": "CLI for the Laddro Career API — tailor resumes, generate cover letters, export PDFs from the terminal",
+  "type": "module",
+  "bin": {
+    "laddro": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "laddro",
+    "career",
+    "resume",
+    "cli",
+    "cover-letter"
+  ],
+  "author": "Laddro <support@laddro.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/laddro-app/laddro-career-cli"
+  },
+  "homepage": "https://developers.laddro.com",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@laddro/career-sdk": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.18",
+    "typescript": "^5.9.3"
+  }
+}

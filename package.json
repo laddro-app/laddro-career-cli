@@ -32,8 +32,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@laddro/career-sdk": "file:../laddro-career-sdk-ts",
-    "tsx": "^4.21.0"
+    "@laddro/career-sdk": "^0.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.19.18",

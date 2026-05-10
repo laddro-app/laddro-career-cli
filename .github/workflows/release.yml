@@ -1,0 +1,122 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            target: darwin-arm64
+            arch: aarch64
+          - os: macos-13
+            target: darwin-x64
+            arch: x86_64
+          - os: ubuntu-latest
+            target: linux-x64
+            arch: x86_64
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build binary
+        run: bun build src/index.ts --compile --outfile laddro-${{ matrix.target }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: laddro-${{ matrix.target }}
+          path: laddro-${{ matrix.target }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+
+      - name: Create archives
+        run: |
+          for dir in laddro-*/; do
+            name=$(basename "$dir")
+            chmod +x "$dir/$name"
+            tar -czf "$name.tar.gz" -C "$dir" "$name"
+          done
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "*.tar.gz"
+          generate_release_notes: true
+
+  update-tap:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: laddro-app/homebrew-tap
+          token: ${{ secrets.TAP_TOKEN }}
+
+      - name: Update formula
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+
+          DARWIN_ARM64_URL="https://github.com/laddro-app/laddro-career-cli/releases/download/v${VERSION}/laddro-darwin-arm64.tar.gz"
+          DARWIN_X64_URL="https://github.com/laddro-app/laddro-career-cli/releases/download/v${VERSION}/laddro-darwin-x64.tar.gz"
+          LINUX_X64_URL="https://github.com/laddro-app/laddro-career-cli/releases/download/v${VERSION}/laddro-linux-x64.tar.gz"
+
+          DARWIN_ARM64_SHA=$(curl -sL "$DARWIN_ARM64_URL" | sha256sum | cut -d' ' -f1)
+          DARWIN_X64_SHA=$(curl -sL "$DARWIN_X64_URL" | sha256sum | cut -d' ' -f1)
+          LINUX_X64_SHA=$(curl -sL "$LINUX_X64_URL" | sha256sum | cut -d' ' -f1)
+
+          cat > Formula/laddro.rb << FORMULA
+          class Laddro < Formula
+            desc "CLI for the Laddro Career API — tailor resumes, generate cover letters, export PDFs"
+            homepage "https://laddro.com"
+            version "${VERSION}"
+            license "MIT"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "${DARWIN_ARM64_URL}"
+                sha256 "${DARWIN_ARM64_SHA}"
+              else
+                url "${DARWIN_X64_URL}"
+                sha256 "${DARWIN_X64_SHA}"
+              end
+            end
+
+            on_linux do
+              url "${LINUX_X64_URL}"
+              sha256 "${LINUX_X64_SHA}"
+            end
+
+            def install
+              bin.install Dir["laddro-*"].first => "laddro"
+            end
+
+            test do
+              assert_match "Laddro Career API CLI", shell_output("#{bin}/laddro help")
+            end
+          end
+          FORMULA
+
+      - name: Push formula
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add Formula/laddro.rb
+          git commit -m "update laddro to ${GITHUB_REF#refs/tags/v}"
+          git push

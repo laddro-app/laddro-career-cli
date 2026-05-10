@@ -61,6 +61,13 @@ laddro settings set --provider Anthropic --model claude-sonnet-4-20250514 --key 
 | `LADDRO_API_KEY` | API key (overrides config file) |
 | `LADDRO_BASE_URL` | Custom API URL |
 
+## Links
+
+- [Laddro](https://laddro.com) — AI-powered career tools
+- [API Reference](https://api.laddro.com/reference) — Interactive docs
+- [Documentation](https://docs.laddro.com) — Guides and tutorials
+- [GitHub](https://github.com/laddro-app) — All SDKs and tools
+
 ## License
 
 MIT

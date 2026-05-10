@@ -1,4 +1,6 @@
 import { readFileSync } from "fs";
+import { execSync } from "child_process";
+import { createInterface } from "readline";
 import { Laddro, LaddroAPIError } from "@laddro/career-sdk";
 import { getApiKey, getBaseUrl, getConfig, saveConfig } from "./config.js";
 import { error, printJSON, printTable, savePDF } from "./output.js";
@@ -14,12 +16,36 @@ function publicClient(): Laddro {
 }
 
 export async function login(args: string[]): Promise<void> {
-  const key = args[0];
-  if (!key) error("Usage: laddro login <api-key>");
+  const flags = parseFlags(args);
+  let key = flags.get("token") || flags.positional[0];
+
+  if (!key) {
+    const url = "https://console.laddro.com/api-keys";
+    console.log(`Opening ${url}`);
+    try {
+      const cmd = process.platform === "darwin" ? "open" : "xdg-open";
+      execSync(`${cmd} ${url}`, { stdio: "ignore" });
+    } catch {}
+
+    console.log("Copy your API key from the console and paste it here.\n");
+    key = await prompt("API key: ");
+    if (!key) error("No key provided.");
+  }
+
   const config = getConfig();
   config.apiKey = key;
   saveConfig(config);
   console.log("API key saved to ~/.laddro/config.json");
+}
+
+function prompt(question: string): Promise<string> {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise((resolve) => {
+    rl.question(question, (answer) => {
+      rl.close();
+      resolve(answer.trim());
+    });
+  });
 }
 
 export async function logout(): Promise<void> {
@@ -210,7 +236,8 @@ export function help(): void {
   console.log(`laddro - Laddro Career API CLI
 
 Commands:
-  login <api-key>           Save API key
+  login                     Open browser to get API key
+  login --token <key>       Save API key directly
   logout                    Remove saved API key
   resumes                   List your resumes
   tailor <position>         Tailor resume for a job

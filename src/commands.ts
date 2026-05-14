@@ -82,7 +82,7 @@ export async function tailor(args: string[]): Promise<void> {
 
   console.log(`Tailoring for: ${positionName}`);
 
-  const pdf = await c.tailor.run({
+  const result = await c.tailor.runDetailed({
     resumeId: flags.get("resume") || undefined,
     positionName,
     jobDescription: flags.get("job-description") || undefined,
@@ -92,7 +92,8 @@ export async function tailor(args: string[]): Promise<void> {
     templateId: flags.get("template") || undefined,
   });
 
-  savePDF(pdf, outputFile);
+  savePDF(result.data, outputFile);
+  printArtifactMetadata(result.metadata);
 }
 
 export async function exportResume(args: string[]): Promise<void> {
@@ -139,7 +140,7 @@ export async function coverLetter(args: string[]): Promise<void> {
     const outputFile = flags.get("output") || flags.get("o") || "cover-letter.pdf";
 
     console.log(`Generating cover letter for: ${positionName}`);
-    const pdf = await c.coverLetters.generate({
+    const result = await c.coverLetters.generateDetailed({
       resumeId: flags.get("resume") || undefined,
       positionName,
       jobDescription: flags.get("job-description") || undefined,
@@ -148,11 +149,19 @@ export async function coverLetter(args: string[]): Promise<void> {
       templateId: flags.get("template") || undefined,
     });
 
-    savePDF(pdf, outputFile);
+    savePDF(result.data, outputFile);
+    printArtifactMetadata(result.metadata);
     return;
   }
 
   error(`Unknown subcommand: cover-letter ${subcommand}. Use: list, generate`);
+}
+
+function printArtifactMetadata(metadata: { resumeId?: string; coverLetterId?: string; filename?: string; mimeType?: string }): void {
+  if (!metadata.resumeId && !metadata.coverLetterId) return;
+  console.log("");
+  if (metadata.resumeId) console.log(`Resume ID: ${metadata.resumeId}`);
+  if (metadata.coverLetterId) console.log(`Cover letter ID: ${metadata.coverLetterId}`);
 }
 
 export async function parse(args: string[]): Promise<void> {
